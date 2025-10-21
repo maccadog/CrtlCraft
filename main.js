@@ -162,12 +162,50 @@ class CtrlCraftApp {
         const fileList = document.getElementById('file-list');
         if (fileList && input.files.length > 0) {
             fileList.innerHTML = '';
-            Array.from(input.files).forEach(file => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item bg-gray-100 p-2 rounded text-sm';
-                fileItem.textContent = file.name;
-                fileList.appendChild(fileItem);
+            Array.from(input.files).forEach((file, index) => {
+                if (file.type.startsWith('image/')) {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item flex items-center justify-between bg-gray-800 p-3 rounded-lg mb-2';
+                    
+                    // Create image preview
+                    const img = document.createElement('img');
+                    img.className = 'w-16 h-16 object-cover rounded mr-3';
+                    img.src = URL.createObjectURL(file);
+                    
+                    // Create file info
+                    const fileInfo = document.createElement('div');
+                    fileInfo.className = 'flex-1';
+                    fileInfo.innerHTML = `
+                        <div class="text-sm font-medium text-white">${file.name}</div>
+                        <div class="text-xs text-gray-400">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                    `;
+                    
+                    // Create remove button
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'text-red-400 hover:text-red-300 ml-2 text-lg font-bold';
+                    removeBtn.innerHTML = '✕';
+                    removeBtn.onclick = () => {
+                        fileItem.remove();
+                        // Remove from file input (create new input without this file)
+                        const dt = new DataTransfer();
+                        const files = Array.from(input.files);
+                        files.forEach((f, i) => {
+                            if (i !== index) dt.items.add(f);
+                        });
+                        input.files = dt.files;
+                        if (input.files.length === 0) {
+                            fileList.innerHTML = '<p class="text-gray-400 text-sm">No files selected</p>';
+                        }
+                    };
+                    
+                    fileItem.appendChild(img);
+                    fileItem.appendChild(fileInfo);
+                    fileItem.appendChild(removeBtn);
+                    fileList.appendChild(fileItem);
+                }
             });
+        } else if (fileList) {
+            fileList.innerHTML = '<p class="text-gray-400 text-sm">No files selected</p>';
         }
     }
 
@@ -185,6 +223,8 @@ class CtrlCraftApp {
             
             // Show success message
             this.showNotification('Inquiry sent successfully! We\'ll contact you soon.', 'success');
+            
+            // Reset form
             form.reset();
             
             // Reset service selection
@@ -192,9 +232,19 @@ class CtrlCraftApp {
                 card.classList.remove('selected');
             });
             
+            // Reset file upload display
+            const fileList = document.getElementById('file-list');
+            if (fileList) {
+                fileList.innerHTML = '<p class="text-gray-400 text-sm">No files selected</p>';
+            }
+            
+            // Redirect to main page after 2 seconds
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+            
         } catch (error) {
             this.showNotification('Failed to send inquiry. Please try again.', 'error');
-        } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Send Inquiry';
         }
